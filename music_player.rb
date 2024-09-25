@@ -34,6 +34,7 @@ class Track
   def initialize(title, location)
     @title = title
     @location = location
+    @x = WIDTH-1600
   end
 end
 
@@ -55,6 +56,7 @@ class MusicPlayerMain < Gosu::Window
     self.caption = "Music Player"
 
     @title = Gosu::Font.new(40)
+    @track_font = Gosu::Font.new(180)
 		@album = nil
     @albums = load_albums()
 
@@ -146,9 +148,7 @@ class MusicPlayerMain < Gosu::Window
 
 	def draw_track(album)
 		for i in 0..album.tracks.length-1
-      album.tracks[i].x = WIDTH -1600
-      album.tracks[i].y = 30+i*600
-			@title.draw_text(album.tracks[i].title, album.tracks[i].x, album.tracks[i].y, ZOrder::PLAYER, 3.0 * @width_scale, 3.0 * @height_scale, Gosu::Color::BLACK)
+			@track_font.draw_text(album.tracks[i].title, WIDTH - 1600, 30+i*600, ZOrder::PLAYER, 1.0, 1.0, Gosu::Color::BLACK)
 		end
 	end
 	
@@ -163,21 +163,33 @@ class MusicPlayerMain < Gosu::Window
       @scroll_y = [@scroll_y + SCROLL_SPEED * 5, @max_scroll].min
     when Gosu::MsWheelUp
       @scroll_y = [@scroll_y - SCROLL_SPEED * 5, 0].max
-		when Gosu::MsLeft
+    when Gosu::MsLeft
       puts "X: #{mouse_x}, Y: #{mouse_y}"
-			@albums.each do |album|
-				if area_clicked(album.x, album.y, album.x + @desired_width, album.y + @desired_height)
-					puts "Album clicked: #{album.title.strip}"
-					# Further action can be implemented here, such as:
-					@album = album
-					# play_track(album)
-				end
-			end
-      if @album && @title
+  
+      # Check if an album was clicked
+      @albums.each do |album|
+        if area_clicked(album.x, album.y, album.x + @desired_width, album.y + @desired_height)
+          puts "Album clicked: #{album.title.strip}"
+          @album = album
+        end
+      end
+  
+      # If an album is selected, check if any track was clicked
+      if @album
         @album.tracks.each_with_index do |track, index|
-          if area_clicked(track.x,track.y, track.x+@title.text_width(track.title)+300, 3000)
-            puts "Track clicked: #{track.title}"
-            # Further action can be implemented here, such as:
+          # Use @track_font for width and height of the track title
+          track_width = @track_font.text_width(track.title)
+          track_height = @track_font.height
+  
+          # Calculate the clickable area for each track title
+          leftX = WIDTH - 1600
+          topY = 30 + index * 600
+          rightX = leftX + track_width
+          bottomY = topY + track_height
+  
+          if area_clicked(leftX, topY, rightX, bottomY)
+            puts "Track clicked: #{track.title.strip}"
+            # Further action can be implemented here, such as playing the track
           end
         end
       end
