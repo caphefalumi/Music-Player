@@ -30,15 +30,18 @@ end
 
 class Track
   attr_accessor :title, :location, :song, :x, :y
+
   def initialize(title, location)
     @title = title
     @location = location
+    @x = x
+    @y = y
     @song = Gosu::Song.new(location.strip)
   end
 end
 
 class Album
-  attr_accessor :title, :artist, :artwork, :genre, :tracks, :x, :y, :page
+  attr_accessor :title, :artist, :artwork, :genre, :tracks, :x, :y
 
   def initialize(title, artist, artwork_file, genre, tracks)
     @title = title
@@ -86,17 +89,19 @@ class MusicPlayerMain < Gosu::Window
       album_artwork = file.gets
       album_genre = GENRE_NAMES[file.gets.to_i]
       count = file.gets.to_i
-      count.times do
+      count.times do |i|
         name = file.gets
         location = file.gets.chomp
         track = Track.new(name, location)
+        track.x = WIDTH - 1700
+        track.y = 30 + i * 600
         tracks << track
       end
       album = Album.new(album_title, album_artist, album_artwork, album_genre, tracks)
       albums << album
     end
-    file.close
-    albums
+    file.close()
+    return albums
   end
 
   def draw
@@ -158,7 +163,6 @@ class MusicPlayerMain < Gosu::Window
 
 			album.x = x + adjust_album_width
 			album.y = y-@scroll_y
-			album.page = 1
 
 			if album.y.between?(-@desired_width-200, HEIGHT)
         @title.draw_text(album.title, album.x, album.y + 650 * @height_scale, ZOrder::PLAYER, 3.0 * @width_scale, 3.0 * @height_scale, Gosu::Color::BLACK)
@@ -236,7 +240,7 @@ class MusicPlayerMain < Gosu::Window
   
       if @album
         @album.tracks.each_with_index do |track, index|
-          if area_clicked(WIDTH-1700, 30+index*600, WIDTH-1600+@track_font.text_width(track.title), 30+index*600+@track_font.height)
+          if area_clicked(track.x, track.y, track.x+@track_font.text_width(track.title), track.y+@track_font.height)
             puts "Track clicked: #{track.title.strip}"
             play_track(track)
             # Further action can be implemented here, such as playing the track
