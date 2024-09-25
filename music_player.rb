@@ -19,22 +19,21 @@ end
 GENRE_NAMES = ['Null', 'Pop', 'Classic', 'Jazz', 'Rock']
 
 class UI 
-  attr_accessor :stop, :play, :pause, :previous, :next
-  def initialize(window)
-    @stop = Gosu::Image.new(window, "assets/stop.png", false)
-    @play = Gosu::Image.new(window, "assets/play.png", false)
-    @pause = Gosu::Image.new(window, "assets/pause.png", false)
-    @previous = Gosu::Image.new(window, "assets/previous.png", false)
-    @next = Gosu::Image.new(window, "assets/next.png", false)
+  attr_accessor :stop, :play, :next
+
+  def initialize()
+    @stop = Gosu::Image.new("assets/stop.png", false)
+    @play = Gosu::Image.new("assets/play.png", false)
+    @next = Gosu::Image.new("assets/next.png", false)
   end
 end
 
 class Track
-  attr_accessor :title, :location, :x, :y, :width, :height
+  attr_accessor :title, :location, :song, :x, :y
   def initialize(title, location)
     @title = title
     @location = location
-    @x = WIDTH-1600
+    @song = Gosu::Song.new(location.strip)
   end
 end
 
@@ -60,6 +59,8 @@ class MusicPlayerMain < Gosu::Window
 		@album = nil
     @albums = load_albums()
 
+    @ui = UI.new()
+
     @width_scale = 3240.to_f / 1920
     @height_scale = 1980.to_f / 1080
     @desired_width = 650 * @width_scale
@@ -69,8 +70,9 @@ class MusicPlayerMain < Gosu::Window
     @max_scroll = @albums.size * (@desired_height + 50) - HEIGHT
     @scrollbar_height = HEIGHT * (HEIGHT.to_f / (@albums.size * (@desired_height + 50)))
 
-    @albums_cached_image = nil
-    @current_track_title = nil
+    @current_color_index = 0    
+    @color_change_delay = 0    
+       
   end
 
   def load_albums
@@ -86,7 +88,7 @@ class MusicPlayerMain < Gosu::Window
       count = file.gets.to_i
       count.times do
         name = file.gets
-        location = file.gets
+        location = file.gets.chomp
         track = Track.new(name, location)
         tracks << track
       end
@@ -99,6 +101,7 @@ class MusicPlayerMain < Gosu::Window
 
   def draw
     draw_background
+    draw_ui
     draw_albums
     draw_scrollbar
 		draw_track(@album) if @album
@@ -113,6 +116,24 @@ class MusicPlayerMain < Gosu::Window
     draw_quad(0, 0, TOP_COLOR, width, 0, TOP_COLOR, 0, height, BOTTOM_COLOR, width, height, BOTTOM_COLOR, ZOrder::BACKGROUND)
   end
 
+  def draw_ui
+    ui_width = 500  # Change to your desired width
+    ui_height = 500  # Change to your desired height
+    # Calculate scale factors based on the desired dimensions
+    stop_scale_x = ui_width.to_f / @ui.stop.width
+    stop_scale_y = ui_height.to_f / @ui.stop.height
+
+    play_scale_x = ui_width.to_f / @ui.play.width
+    play_scale_y = ui_height.to_f / @ui.play.height
+
+    next_scale_x = ui_width.to_f / @ui.next.width
+    next_scale_y = ui_height.to_f / @ui.next.height
+
+    # Draw buttons with scaling
+    @ui.stop.draw(50, 50, ZOrder::UI, stop_scale_x, stop_scale_y)
+    @ui.play.draw(250 + ui_width + 20, 50, ZOrder::UI, play_scale_x, play_scale_y)  # Adjust spacing between buttons
+    @ui.next.draw(450 + (ui_width + 20) * 2, 50, ZOrder::UI, next_scale_x, next_scale_y)
+  end
   def draw_albums
 		space_between_albums = 200
 		adjust_album_width = 0
@@ -146,11 +167,51 @@ class MusicPlayerMain < Gosu::Window
 		end
   end
 
-	def draw_track(album)
-		for i in 0..album.tracks.length-1
-			@track_font.draw_text(album.tracks[i].title, WIDTH - 1600, 30+i*600, ZOrder::PLAYER, 1.0, 1.0, Gosu::Color::BLACK)
-		end
-	end
+
+  def draw_track(album)
+    colors = [
+      Gosu::Color::GRAY,
+      Gosu::Color::WHITE,
+      Gosu::Color::AQUA,
+      Gosu::Color::RED,
+      Gosu::Color::GREEN,
+      Gosu::Color::BLUE,
+      Gosu::Color::YELLOW,
+      Gosu::Color::FUCHSIA,
+      Gosu::Color::CYAN,
+      Gosu::Color.rgba(255, 165, 0, 255),  # Deep Orange
+      Gosu::Color.rgba(128, 0, 128, 255),  # Indigo
+      Gosu::Color.rgba(0, 255, 127, 255),  # Spring Green
+      Gosu::Color.rgba(255, 20, 147, 255), # Deep Pink
+      Gosu::Color.rgba(75, 0, 130, 255),   # Indigo
+      Gosu::Color.rgba(255, 105, 180, 255) # Hot Pink
+    ]
+    
+    for i in 0..album.tracks.length-1
+      album.tracks[i].x = WIDTH - 1700
+      album.tracks[i].y = 30 + i * 600
+      
+      if album.tracks[i].song.playing?
+        current_color = colors[@current_color_index]
+
+        @track_font.draw_text(album.tracks[i].title, album.tracks[i].x, album.tracks[i].y, ZOrder::PLAYER, 1.0, 1.0, current_color)
+        # Update the color every 20 frames
+        if @color_change_delay > 20
+          @current_color_index = (@current_color_index + 1) % colors.length
+          @color_change_delay = 0   # Reset the delay counter
+        else
+          @color_change_delay += 1  # Increment the delay counter
+        end
+      else
+        @track_font.draw_text(album.tracks[i].title, album.tracks[i].x, album.tracks[i].y, ZOrder::PLAYER, 1.0, 1.0, Gosu::Color::BLACK)
+      end
+    end
+  end
+
+
+  def play_track(track)
+    track.song.play(false)
+  end
 	
   def draw_scrollbar
     scrollbar_y = (@scroll_y.to_f / @max_scroll) * (HEIGHT - @scrollbar_height)
@@ -164,7 +225,6 @@ class MusicPlayerMain < Gosu::Window
     when Gosu::MsWheelUp
       @scroll_y = [@scroll_y - SCROLL_SPEED * 5, 0].max
     when Gosu::MsLeft
-      puts "X: #{mouse_x}, Y: #{mouse_y}"
   
       # Check if an album was clicked
       @albums.each do |album|
@@ -174,21 +234,11 @@ class MusicPlayerMain < Gosu::Window
         end
       end
   
-      # If an album is selected, check if any track was clicked
       if @album
         @album.tracks.each_with_index do |track, index|
-          # Use @track_font for width and height of the track title
-          track_width = @track_font.text_width(track.title)
-          track_height = @track_font.height
-  
-          # Calculate the clickable area for each track title
-          leftX = WIDTH - 1600
-          topY = 30 + index * 600
-          rightX = leftX + track_width
-          bottomY = topY + track_height
-  
-          if area_clicked(leftX, topY, rightX, bottomY)
+          if area_clicked(WIDTH-1700, 30+index*600, WIDTH-1600+@track_font.text_width(track.title), 30+index*600+@track_font.height)
             puts "Track clicked: #{track.title.strip}"
+            play_track(track)
             # Further action can be implemented here, such as playing the track
           end
         end

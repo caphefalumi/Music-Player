@@ -5,42 +5,42 @@ artworks/Neil Diamond.png
 2
 3
 Crackling Rose
-sounds/01-Cracklin-rose.wav
+sounds/01-Cracklin-rose.mp3
 Soolaimon
-sounds/06-Soolaimon.wav
+sounds/06-Soolaimon.mp3
 Sweet Caroline
-sounds/20-Sweet_Caroline.wav
+sounds/20-Sweet_Caroline.mp3
 Platters
 Greatest Hits
 artworks/The Platters.png
 1
 2
 Twilight Time
-sounds/01-Twilight_Time.wav
+sounds/01-Twilight_Time.mp3
 The Great Pretender
-sounds/10-The_Great_Pretender.wav
+sounds/10-The_Great_Pretender.mp3
 Don McClean
 American Pie
 artworks/Don McClean.png
 2
 1
 The_Great
-sounds/01-The_Great_Pretender.wav
+sounds/10-The_Great_Pretender.mp3
 Carly Simon
 No Secrets
 artworks/Carly Simon.png
 2
 3
 The Carter Family
-sounds/02-The_Carter_Family.wav
+sounds/02-The_Carter_Family.mp3
 Your So Vain
-sounds/03-Youre_So_Vain.wav
+sounds/03-Youre_So_Vain.mp3
 Embrace me You Child
-sounds/06-Embrace_Me_You_Child.wav
+sounds/06-Embrace_Me_You_Child.mp3
 Bear Mccreary
 God Of War
-artworks\GOW.png
+artworks/GOW.png
 4
 1
 Ragnarok
-sounds/ragnarok.wav 
+sounds/ragnarok.mp3 
