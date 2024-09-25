@@ -30,7 +30,7 @@ class UI
 end
 
 class Track
-  attr_accessor :title, :location
+  attr_accessor :title, :location, :x, :y, :width, :height
   def initialize(title, location)
     @title = title
     @location = location
@@ -55,6 +55,7 @@ class MusicPlayerMain < Gosu::Window
     self.caption = "Music Player"
 
     @title = Gosu::Font.new(40)
+		@album = nil
     @albums = load_albums()
 
     @width_scale = 3240.to_f / 1920
@@ -98,10 +99,7 @@ class MusicPlayerMain < Gosu::Window
     draw_background
     draw_albums
     draw_scrollbar
-
-    if @current_track_title
-      @title.draw_text(@current_track_title, 7000, 1000, ZOrder::PLAYER, 1.0, 1.0, Gosu::Color::BLACK)
-    end
+		draw_track(@album) if @album
   end
 
 	def area_clicked(leftX, topY, rightX, bottomY)
@@ -115,12 +113,14 @@ class MusicPlayerMain < Gosu::Window
 
   def draw_albums
 		space_between_albums = 200
+		adjust_album_width = 0
 		y = 600
 		@albums.each_with_index do |album, index|
-			x = 100 + (index * (@desired_width + space_between_albums))
+			adjust_album_width = @albums[index-1].title.length if @albums[index-1].title
+			x = 300+ (index * (@desired_width + space_between_albums)) + adjust_album_width
 			escape_line = false
 			if x + @desired_width > WIDTH - 1900
-				x = 100
+				x = 300
 				escape_line = true
 			end
 			if escape_line
@@ -133,20 +133,28 @@ class MusicPlayerMain < Gosu::Window
 			artwork_width_scale = @desired_width.to_f / original_width
 			artwork_height_scale = @desired_height.to_f / original_height
 
-			album.x = x
+			album.x = x + adjust_album_width
 			album.y = y-@scroll_y
 			album.page = 1
 
 			if album.y.between?(-@desired_width-200, HEIGHT)
-        @title.draw_text(album.title, album.x + 200, album.y + 650 * @height_scale, ZOrder::PLAYER, 3.0 * @width_scale, 3.0 * @height_scale, Gosu::Color::BLACK)
-        album.artwork.draw(album.x + 200, album.y, ZOrder::PLAYER, artwork_width_scale, artwork_height_scale)
+        @title.draw_text(album.title, album.x, album.y + 650 * @height_scale, ZOrder::PLAYER, 3.0 * @width_scale, 3.0 * @height_scale, Gosu::Color::BLACK)
+        album.artwork.draw(album.x, album.y, ZOrder::PLAYER, artwork_width_scale, artwork_height_scale)
       end
 		end
   end
 
+	def draw_track(album)
+		for i in 0..album.tracks.length-1
+      album.tracks[i].x = WIDTH -1600
+      album.tracks[i].y = 30+i*600
+			@title.draw_text(album.tracks[i].title, album.tracks[i].x, album.tracks[i].y, ZOrder::PLAYER, 3.0 * @width_scale, 3.0 * @height_scale, Gosu::Color::BLACK)
+		end
+	end
+	
   def draw_scrollbar
     scrollbar_y = (@scroll_y.to_f / @max_scroll) * (HEIGHT - @scrollbar_height)
-    Gosu.draw_rect(WIDTH - 100, scrollbar_y, 500, @scrollbar_height, Gosu::Color::GRAY, ZOrder::UI)
+    Gosu.draw_rect(WIDTH - 1900, scrollbar_y, 100, @scrollbar_height, Gosu::Color::GRAY, ZOrder::UI)
   end
 
   def button_down(id)
@@ -156,14 +164,23 @@ class MusicPlayerMain < Gosu::Window
     when Gosu::MsWheelUp
       @scroll_y = [@scroll_y - SCROLL_SPEED * 5, 0].max
 		when Gosu::MsLeft
+      puts "X: #{mouse_x}, Y: #{mouse_y}"
 			@albums.each do |album|
 				if area_clicked(album.x, album.y, album.x + @desired_width, album.y + @desired_height)
 					puts "Album clicked: #{album.title.strip}"
 					# Further action can be implemented here, such as:
-					# display_tracklist(album)
+					@album = album
 					# play_track(album)
 				end
 			end
+      if @album && @title
+        @album.tracks.each_with_index do |track, index|
+          if area_clicked(track.x,track.y, track.x+@title.text_width(track.title)+300, 3000)
+            puts "Track clicked: #{track.title}"
+            # Further action can be implemented here, such as:
+          end
+        end
+      end
     end
   end
 end

@@ -23,7 +23,9 @@ Don McClean
 American Pie
 artworks/Don McClean.png
 2
-0
+1
+The_Great
+sounds/01-The_Great_Pretender.wav
 Carly Simon
 No Secrets
 artworks/Carly Simon.png
