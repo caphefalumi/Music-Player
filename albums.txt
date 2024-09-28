@@ -1,6 +1,6 @@
-5
+6
 Neil Diamond
-Greatest Hits
+Greatest Hits32123121321
 artworks/Neil Diamond.png
 2
 3
@@ -44,3 +44,10 @@ artworks/GOW.png
 1
 Ragnarok
 sounds/ragnarok.mp3 
+Enternal Warriors
+Never Give Up
+artworks/Enternal.png
+1
+1
+Never
+sounds/never_give_up.mp3

@@ -1,11 +1,12 @@
 require 'rubygems'
+require 'mp3info'
 require 'gosu'
 
 TOP_COLOR = Gosu::Color.new(0xFF1EB1FA)
 BOTTOM_COLOR = Gosu::Color.new(0xFF1D4DB5)
 
-WIDTH = 7300
-HEIGHT = 4000
+WIDTH = 8000
+HEIGHT = 5000
 SCROLL_SPEED = 30
 
 module ZOrder
@@ -59,6 +60,8 @@ class MusicPlayerMain < Gosu::Window
 
     @title = Gosu::Font.new(40)
     @track_font = Gosu::Font.new(180)
+    @playing_track_font = Gosu::Font.new(380)
+    @current_playing_track = nil
 		@album = nil
     @albums = load_albums()
 
@@ -66,8 +69,8 @@ class MusicPlayerMain < Gosu::Window
 
     @width_scale = 3240.to_f / 1920
     @height_scale = 1980.to_f / 1080
-    @desired_width = 650 * @width_scale
-    @desired_height = 650 * @height_scale
+    @desired_width = 850 * @width_scale
+    @desired_height = 850 * @height_scale
 
     @scroll_y = 0
     @max_scroll = @albums.size * (@desired_height + 50) - HEIGHT
@@ -76,6 +79,8 @@ class MusicPlayerMain < Gosu::Window
     @current_color_index = 0    
     @color_change_delay = 0    
        
+    @start_time = 0
+    @total_duration = 0 
   end
 
   def load_albums
@@ -110,7 +115,9 @@ class MusicPlayerMain < Gosu::Window
     draw_albums
     draw_scrollbar
 		draw_track(@album) if @album
+    draw_duration_bar if @current_playing_track
   end
+  
 
 	def area_clicked(leftX, topY, rightX, bottomY)
 		return mouse_x >= leftX && mouse_x <= rightX && mouse_y >= topY && mouse_y <= bottomY
@@ -124,6 +131,7 @@ class MusicPlayerMain < Gosu::Window
   def draw_ui
     ui_width = 500  # Change to your desired width
     ui_height = 500  # Change to your desired height
+    ui_y_position = HEIGHT - ui_height - 50  # Move UI to the bottom
     # Calculate scale factors based on the desired dimensions
     stop_scale_x = ui_width.to_f / @ui.stop.width
     stop_scale_y = ui_height.to_f / @ui.stop.height
@@ -135,42 +143,37 @@ class MusicPlayerMain < Gosu::Window
     next_scale_y = ui_height.to_f / @ui.next.height
 
     # Draw buttons with scaling
-    @ui.stop.draw(50, 50, ZOrder::UI, stop_scale_x, stop_scale_y)
-    @ui.play.draw(250 + ui_width + 20, 50, ZOrder::UI, play_scale_x, play_scale_y)  # Adjust spacing between buttons
-    @ui.next.draw(450 + (ui_width + 20) * 2, 50, ZOrder::UI, next_scale_x, next_scale_y)
+    @ui.stop.draw(50, ui_y_position, ZOrder::UI, stop_scale_x, stop_scale_y)
+    @ui.play.draw(250 + ui_width + 20, ui_y_position, ZOrder::UI, play_scale_x, play_scale_y)  # Adjust spacing between buttons
+    @ui.next.draw(450 + (ui_width + 20) * 2, ui_y_position, ZOrder::UI, next_scale_x, next_scale_y)
   end
   def draw_albums
 		space_between_albums = 200
 		adjust_album_width = 0
+    x = -(@desired_width +space_between_albums) + 300
 		y = 600
+    row_spacing = 700
 		@albums.each_with_index do |album, index|
-			adjust_album_width = @albums[index-1].title.length if @albums[index-1].title
-			x = 300+ (index * (@desired_width + space_between_albums)) + adjust_album_width
-			escape_line = false
-			if x + @desired_width > WIDTH - 1900
+			x += @desired_width + space_between_albums
+			if x + @desired_width > WIDTH - 1800
 				x = 300
-				escape_line = true
-			end
-			if escape_line
-				y = 2300 + (index % 2) * (@desired_height + 50)
-				escape_line = false
+        y += @desired_height + row_spacing
 			end
 
 			original_width = album.artwork.width
 			original_height = album.artwork.height
 			artwork_width_scale = @desired_width.to_f / original_width
 			artwork_height_scale = @desired_height.to_f / original_height
-
-			album.x = x + adjust_album_width
+			album.x = x
 			album.y = y-@scroll_y
 
 			if album.y.between?(-@desired_width-200, HEIGHT)
-        @title.draw_text(album.title, album.x, album.y + 650 * @height_scale, ZOrder::PLAYER, 3.0 * @width_scale, 3.0 * @height_scale, Gosu::Color::BLACK)
+        truncated_title = truncate_text(album.title.strip,18)
+        @title.draw_text(truncated_title, album.x+50, album.y + @desired_width+200, ZOrder::PLAYER, 3.0 * @width_scale, 3.0 * @height_scale, Gosu::Color::BLACK)
         album.artwork.draw(album.x, album.y, ZOrder::PLAYER, artwork_width_scale, artwork_height_scale)
       end
 		end
   end
-
 
   def draw_track(album)
     colors = [
@@ -190,37 +193,87 @@ class MusicPlayerMain < Gosu::Window
       Gosu::Color.rgba(75, 0, 130, 255),   # Indigo
       Gosu::Color.rgba(255, 105, 180, 255) # Hot Pink
     ]
+    current_color = colors[@current_color_index]
     
     for i in 0..album.tracks.length-1
       album.tracks[i].x = WIDTH - 1700
       album.tracks[i].y = 30 + i * 600
       
-      if album.tracks[i].song.playing?
-        current_color = colors[@current_color_index]
-
+      if album.tracks[i].song.playing? 
+        @current_playing_track = album.tracks[i].title
         @track_font.draw_text(album.tracks[i].title, album.tracks[i].x, album.tracks[i].y, ZOrder::PLAYER, 1.0, 1.0, current_color)
-        # Update the color every 20 frames
-        if @color_change_delay > 20
-          @current_color_index = (@current_color_index + 1) % colors.length
-          @color_change_delay = 0   # Reset the delay counter
-        else
-          @color_change_delay += 1  # Increment the delay counter
-        end
       else
         @track_font.draw_text(album.tracks[i].title, album.tracks[i].x, album.tracks[i].y, ZOrder::PLAYER, 1.0, 1.0, Gosu::Color::BLACK)
       end
     end
+
+    if @current_playing_track
+      @playing_track_font.draw_text("Playing: #{@current_playing_track}", 1000, 100, ZOrder::PLAYER, 1.0, 1.0, current_color)
+    end 
+
+    # Update the color every 20 frames
+    if @color_change_delay > 20
+      @current_color_index = (@current_color_index + 1) % colors.length
+      @color_change_delay = 0   # Reset the delay counter
+    else
+      @color_change_delay += 1  # Increment the delay counter
+    end
   end
 
+  def draw_duration_bar
+    return unless @current_playing_track && @total_duration > 0
+    
+    elapsed_time = Gosu.milliseconds - @start_time
+    progress = [elapsed_time / @total_duration.to_f, 1.0].min  # Ensure the value doesn't exceed 1.0
 
-  def play_track(track)
-    track.song.play(false)
+    bar_width = WIDTH - 1900  # Width of the bar
+    bar_height = 50  # Height of the bar
+    bar_x = 50  # Left padding
+    bar_y = HEIGHT - 200  # Above the UI buttons
+
+    # Draw the progress bar background
+    Gosu.draw_rect(bar_x, bar_y, bar_width, bar_height, Gosu::Color::GRAY, ZOrder::UI)
+
+    # Draw the filled part based on progress
+    filled_width = bar_width * progress
+    Gosu.draw_rect(bar_x, bar_y, filled_width, bar_height, Gosu::Color::GREEN, ZOrder::UI)
+
+    # # Display the elapsed time and total duration (formatted as mm:ss)
+    # elapsed_time_text = format_time(elapsed_time)
+    # total_duration_text = format_time(@total_duration)
+
+    # @title.draw_text("#{elapsed_time_text} / #{total_duration_text}", bar_x + bar_width + 30, bar_y + 5, ZOrder::UI, 1.0, 1.0, Gosu::Color::WHITE)
   end
-	
+  
   def draw_scrollbar
     scrollbar_y = (@scroll_y.to_f / @max_scroll) * (HEIGHT - @scrollbar_height)
     Gosu.draw_rect(WIDTH - 1900, scrollbar_y, 100, @scrollbar_height, Gosu::Color::GRAY, ZOrder::UI)
   end
+
+  def truncate_text(text, max_width)
+    if text.length > max_width
+      while text.length+3 > max_width
+        text = text.chop
+      end
+      text += "..."
+    end
+    return text
+  end
+  # Formats time in milliseconds to "mm:ss"
+  def format_time(milliseconds)
+    total_seconds = milliseconds / 1000
+    minutes = total_seconds / 60
+    seconds = total_seconds % 60
+    format("%02d:%02d", minutes, seconds)
+  end
+  def play_track(track)
+    track.song.play(false)
+    @start_time = Gosu.milliseconds
+
+    @total_duration = Mp3Info.open(track.location).length.to_i * 1000
+  end
+	
+
 
   def button_down(id)
     case id
@@ -238,7 +291,7 @@ class MusicPlayerMain < Gosu::Window
         end
       end
   
-      if @album
+      if @album 
         @album.tracks.each_with_index do |track, index|
           if area_clicked(track.x, track.y, track.x+@track_font.text_width(track.title), track.y+@track_font.height)
             puts "Track clicked: #{track.title.strip}"
