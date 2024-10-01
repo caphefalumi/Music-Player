@@ -1,6 +1,7 @@
 6
 Neil Diamond
 Greatest Hits32123121321
+1980
 artworks/Neil Diamond.png
 2
 3
@@ -12,6 +13,7 @@ Sweet Caroline
 sounds/20-Sweet_Caroline.mp3
 Platters
 Greatest Hits
+1985
 artworks/The Platters.png
 1
 2
@@ -21,6 +23,7 @@ The Great Pretender
 sounds/10-The_Great_Pretender.mp3
 Don McClean
 American Pie
+2003
 artworks/Don McClean.png
 2
 1
@@ -28,6 +31,7 @@ The_Great
 sounds/10-The_Great_Pretender.mp3
 Carly Simon
 No Secrets
+2012
 artworks/Carly Simon.png
 2
 3
@@ -39,6 +43,7 @@ Embrace me You Child
 sounds/06-Embrace_Me_You_Child.mp3
 Bear Mccreary
 God Of War
+2018
 artworks/GOW.png
 4
 1
@@ -46,6 +51,7 @@ Ragnarok
 sounds/ragnarok.mp3 
 Enternal Warriors
 Never Give Up
+2024
 artworks/Enternal.png
 1
 1

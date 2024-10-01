@@ -42,14 +42,15 @@ class Track
 end
 
 class Album
-  attr_accessor :title, :artist, :artwork, :genre, :tracks, :x, :y
+  attr_accessor :title, :artist, :artwork, :genre, :tracks, :year, :x, :y
 
-  def initialize(title, artist, artwork_file, genre, tracks)
+  def initialize(title, artist, artwork_file, genre, tracks, year)
     @title = title
     @artist = artist
     @artwork = Gosu::Image.new(artwork_file.strip)
     @genre = genre
     @tracks = tracks
+    @year = year
   end
 end
 
@@ -72,6 +73,11 @@ class MusicPlayerMain < Gosu::Window
     @desired_width = 850 * @width_scale
     @desired_height = 850 * @height_scale
 
+    # Sort Options UI
+    @sort_font = Gosu::Font.new(300)
+    @current_sort_option
+
+
     @scroll_y = 0
     @max_scroll = @albums.size * (@desired_height + 50) - HEIGHT
     @scrollbar_height = HEIGHT * (HEIGHT.to_f / (@albums.size * (@desired_height + 50)))
@@ -81,6 +87,8 @@ class MusicPlayerMain < Gosu::Window
        
     @start_time = 0
     @total_duration = 0 
+
+
   end
 
   def load_albums
@@ -91,6 +99,7 @@ class MusicPlayerMain < Gosu::Window
       tracks = []
       album_artist = file.gets
       album_title = file.gets
+      album_year_recorded = file.gets.to_i
       album_artwork = file.gets
       album_genre = GENRE_NAMES[file.gets.to_i]
       count = file.gets.to_i
@@ -102,7 +111,7 @@ class MusicPlayerMain < Gosu::Window
         track.y = 30 + i * 600
         tracks << track
       end
-      album = Album.new(album_title, album_artist, album_artwork, album_genre, tracks)
+      album = Album.new(album_title, album_artist, album_artwork, album_genre, tracks, album_year_recorded)
       albums << album
     end
     file.close()
@@ -146,7 +155,19 @@ class MusicPlayerMain < Gosu::Window
     @ui.stop.draw(50, ui_y_position, ZOrder::UI, stop_scale_x, stop_scale_y)
     @ui.play.draw(250 + ui_width + 20, ui_y_position, ZOrder::UI, play_scale_x, play_scale_y)  # Adjust spacing between buttons
     @ui.next.draw(450 + (ui_width + 20) * 2, ui_y_position, ZOrder::UI, next_scale_x, next_scale_y)
+
+    #Draw sort buttons
+    @sort_font.draw_text("Sort By:", 50, 300, ZOrder::UI, 0.7, 0.7, Gosu::Color::WHITE)
+    @sort_font.draw_text("|", 700, 230, ZOrder::UI, 1.0, 1.0, Gosu::Color::WHITE)
+    @sort_font.draw_text("Title", 1000, 250, ZOrder::UI, 1.0, 1.0, Gosu::Color::WHITE)
+    @sort_font.draw_text("|", 1700, 230, ZOrder::UI, 1.0, 1.0, Gosu::Color::WHITE)
+    @sort_font.draw_text("Genre", 1900, 250, ZOrder::UI, 1.0, 1.0, Gosu::Color::WHITE)
+    @sort_font.draw_text("|", 2700, 230, ZOrder::UI, 1.0, 1.0, Gosu::Color::WHITE)
+    @sort_font.draw_text("Date", 2900, 250, ZOrder::UI, 1.0, 1.0, Gosu::Color::WHITE)
+
+
   end
+
   def draw_albums
 		space_between_albums = 200
 		adjust_album_width = 0
@@ -269,20 +290,50 @@ class MusicPlayerMain < Gosu::Window
   def play_track(track)
     track.song.play(false)
     @start_time = Gosu.milliseconds
-
     @total_duration = Mp3Info.open(track.location).length.to_i * 1000
   end
 	
-
+  def sort(choice)
+    
+    if @current_sort_option == choice
+      @albums.reverse!
+    else
+      case choice
+      when "Genre"
+        @albums.sort_by! { |album| GENRE_NAMES.index(album.genre) }
+      when "Names"
+        @albums.sort_by! { |album| album.title }
+      when "Year Recorded"
+        @albums.sort_by! { |album| album.year }
+      end
+    end
+    @current_sort_option = choice
+  end
 
   def button_down(id)
+    sort_choice = ""
     case id
     when Gosu::MsWheelDown
       @scroll_y = [@scroll_y + SCROLL_SPEED * 5, @max_scroll].min
     when Gosu::MsWheelUp
       @scroll_y = [@scroll_y - SCROLL_SPEED * 5, 0].max
     when Gosu::MsLeft
-  
+
+      # Check if the sort buttons are clicked
+      if area_clicked(1000, 250, 1000+@sort_font.text_width("Names"), 250+@sort_font.height)  # Title sort button bounds
+        sort_choice = "Names"
+        sort(sort_choice)
+        puts "Sorting by Title"
+      elsif area_clicked(1900, 250, 1900+@sort_font.text_width("Genre"), 250+@sort_font.height)  # Genre sort button bounds
+        sort_choice = "Genre"
+        sort("Genre")
+        puts "Sorting by Genre"
+      elsif area_clicked(2900, 250, 2900+@sort_font.text_width("Year"), 250+@sort_font.height)  # Date sort button bounds
+        sort_choice = "Year"
+        sort("Year")
+        puts "Sorting by Year"
+      end
+
       # Check if an album was clicked
       @albums.each do |album|
         if area_clicked(album.x, album.y, album.x + @desired_width, album.y + @desired_height)

@@ -1,6 +1,8 @@
 require 'rubygems'
 require 'gosu'
 
+
+
 class Board
 
 end
