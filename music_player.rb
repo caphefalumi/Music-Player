@@ -295,7 +295,7 @@ class MusicPlayerMain < Gosu::Window
 	
   def sort(choice)
     
-    if @current_sort_option == choice
+    if @current_sort_option == choice && choice != ""
       @albums.reverse!
     else
       case choice
@@ -303,8 +303,10 @@ class MusicPlayerMain < Gosu::Window
         @albums.sort_by! { |album| GENRE_NAMES.index(album.genre) }
       when "Names"
         @albums.sort_by! { |album| album.title }
-      when "Year Recorded"
+      when "Year"
         @albums.sort_by! { |album| album.year }
+      when ""
+        @albums
       end
     end
     @current_sort_option = choice
@@ -322,17 +324,15 @@ class MusicPlayerMain < Gosu::Window
       # Check if the sort buttons are clicked
       if area_clicked(1000, 250, 1000+@sort_font.text_width("Names"), 250+@sort_font.height)  # Title sort button bounds
         sort_choice = "Names"
-        sort(sort_choice)
         puts "Sorting by Title"
       elsif area_clicked(1900, 250, 1900+@sort_font.text_width("Genre"), 250+@sort_font.height)  # Genre sort button bounds
         sort_choice = "Genre"
-        sort("Genre")
         puts "Sorting by Genre"
-      elsif area_clicked(2900, 250, 2900+@sort_font.text_width("Year"), 250+@sort_font.height)  # Date sort button bounds
+      elsif area_clicked(2900, 250, 2900+@sort_font.text_width("Date"), 250+@sort_font.height)  # Date sort button bounds
         sort_choice = "Year"
-        sort("Year")
         puts "Sorting by Year"
       end
+      sort(sort_choice)
 
       # Check if an album was clicked
       @albums.each do |album|
