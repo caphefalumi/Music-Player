@@ -68,7 +68,7 @@ class MusicPlayerMain < Gosu::Window
     self.caption = "Music Player"
     
     @title_size = 250
-    @track_font_size = 180
+    @track_font_size = 250
     @playing_track_font_size = 380
 
     @sort_font = Gosu::Font.new(300)
@@ -209,8 +209,6 @@ class MusicPlayerMain < Gosu::Window
       album.y = y - @scroll_y
 
       if album.y.between?(-@desired_width-200, HEIGHT)
-
-        # Using Gosu::Image.from_text instead of Gosu::Font for title rendering
         truncated_title = truncate_text(album.title.strip, @title_size, @desired_width + 200)
         title_image = Gosu::Image.from_text(truncated_title, @title_size)
         title_image.draw(album.x + 50, album.y + @desired_width + 200, ZOrder::PLAYER)
@@ -257,9 +255,10 @@ class MusicPlayerMain < Gosu::Window
     end
 
     if @current_playing_track
-      playing_text = "Playing: #{@current_playing_track.title}"
+      track_title = truncate_text(@current_playing_track.title, @playing_track_font_size, WIDTH-3000)
+      playing_text = "Playing: #{track_title}"
       playing_image = Gosu::Image.from_text(playing_text, @playing_track_font_size)
-      playing_image.draw(1000, 100, ZOrder::PLAYER, 1.0, 1.0, current_color)
+      playing_image.draw(2100, HEIGHT-500, ZOrder::PLAYER, 1.0, 1.0, current_color)
     end
 
     # Update the color every 20 frames
