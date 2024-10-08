@@ -20,11 +20,12 @@ end
 GENRE_NAMES = ['Null', 'Pop', 'Classic', 'Jazz', 'Rock']
 
 class UI
-  attr_accessor :stop, :play, :next, :sort_by, :pipe, :title, :genre, :date
+  attr_accessor :pause, :play, :next, :previous, :sort_by, :pipe, :title, :genre, :date
 
   def initialize()
-    @stop = Gosu::Image.new("assets/stop.png", false)
+    @pause = Gosu::Image.new("assets/pause.png", false)
     @play = Gosu::Image.new("assets/play.png", false)
+    @previous = Gosu::Image.new("assets/previous.png", false)
     @next = Gosu::Image.new("assets/next.png", false)
 
     # Create text as images using Image::from_text
@@ -69,7 +70,9 @@ class MusicPlayerMain < Gosu::Window
     @title_size = 250
     @track_font_size = 180
     @playing_track_font_size = 380
-    @sort_font_size = 300
+
+    @sort_font = Gosu::Font.new(300)
+    @track_font = Gosu::Font.new(@track_font_size)
 
     @current_playing_track = nil
 		@album = nil
@@ -93,7 +96,7 @@ class MusicPlayerMain < Gosu::Window
     @start_time = 0
     @total_duration = 0 
 
-
+    @is_playing = false
 
   end
   
@@ -147,9 +150,10 @@ class MusicPlayerMain < Gosu::Window
     ui_width = 500  # Change to your desired width
     ui_height = 500  # Change to your desired height
     ui_y_position = HEIGHT - ui_height - 50  # Move UI to the bottom
+
     # Calculate scale factors based on the desired dimensions
-    stop_scale_x = ui_width.to_f / @ui.stop.width
-    stop_scale_y = ui_height.to_f / @ui.stop.height
+    pause_scale_x = ui_width.to_f / @ui.pause.width
+    pause_scale_y = ui_height.to_f / @ui.pause.height
 
     play_scale_x = ui_width.to_f / @ui.play.width
     play_scale_y = ui_height.to_f / @ui.play.height
@@ -157,14 +161,21 @@ class MusicPlayerMain < Gosu::Window
     next_scale_x = ui_width.to_f / @ui.next.width
     next_scale_y = ui_height.to_f / @ui.next.height
 
+    previous_scale_x = ui_width.to_f / @ui.previous.width
+    previous_scale_y = ui_height.to_f / @ui.previous.height
+
     # Draw UI background
     Gosu.draw_rect(50, 250, WIDTH-1900, 300, Gosu::Color::GRAY, ZOrder::UI)
 
     # Draw buttons with scaling
-    @ui.stop.draw(50, ui_y_position, ZOrder::UI, stop_scale_x, stop_scale_y)
-    @ui.play.draw(250 + ui_width + 20, ui_y_position, ZOrder::UI, play_scale_x, play_scale_y)  # Adjust spacing between buttons
-    @ui.next.draw(450 + (ui_width + 20) * 2, ui_y_position, ZOrder::UI, next_scale_x, next_scale_y)
-
+    if @is_playing  && @current_playing_track
+      @ui.pause.draw(250 + ui_width + 20, ui_y_position, ZOrder::UI, pause_scale_x, pause_scale_y)
+    else
+      @ui.play.draw(250 + ui_width + 20, ui_y_position, ZOrder::UI, play_scale_x, play_scale_y)  # Adjust spacing between buttons
+    end
+    @ui.next.draw(450+(ui_width + 20) * 2, ui_y_position, ZOrder::UI, next_scale_x, next_scale_y)
+    @ui.previous.draw(50, ui_y_position, ZOrder::UI, previous_scale_x, previous_scale_y)
+    
     # Draw the sort text images
     @ui.sort_by.draw(50, 300, ZOrder::UI, 1.0, 1.0)
     @ui.pipe.draw(800, 230, ZOrder::UI, 1.0, 1.0)
@@ -238,7 +249,7 @@ class MusicPlayerMain < Gosu::Window
       # Create image from text
       track_image = Gosu::Image.from_text(track_title_trim, @track_font_size)
       if track.song.playing?
-        @current_playing_track = track.title
+        @current_playing_track = track
         track_image.draw(track.x, track.y, ZOrder::PLAYER, 1.0, 1.0, current_color)
       else
         track_image.draw(track.x, track.y, ZOrder::PLAYER, 1.0, 1.0, Gosu::Color::BLACK)
@@ -246,7 +257,7 @@ class MusicPlayerMain < Gosu::Window
     end
 
     if @current_playing_track
-      playing_text = "Playing: #{@current_playing_track}"
+      playing_text = "Playing: #{@current_playing_track.title}"
       playing_image = Gosu::Image.from_text(playing_text, @playing_track_font_size)
       playing_image.draw(1000, 100, ZOrder::PLAYER, 1.0, 1.0, current_color)
     end
@@ -300,6 +311,25 @@ class MusicPlayerMain < Gosu::Window
     @total_duration = Mp3Info.open(track.location).length.to_i * 1000
   end
 	
+
+  def check_play_button_click
+    ui_width = 500  # Button width
+    ui_height = 500 # Button height
+    ui_y_position = HEIGHT - ui_height - 50  # Move UI to the bottom
+
+    # Check if play/pause button is clicked
+    if area_clicked(250 + ui_width + 20, ui_y_position, 250 + ui_width + 20 + ui_width, ui_y_position + ui_height)
+      @is_playing = !@is_playing  # Toggle play/pause state
+      puts @is_playing ? "Music is playing" : "Music is paused"
+
+      # Play or pause the current track accordingly
+      if @is_playing && @current_playing_track
+        @current_playing_track.song.play
+      elsif @current_playing_track
+        @current_playing_track.song.pause
+      end
+    end
+  end
   def sort(choice)
     if @current_sort_option == choice && choice != ""
       @albums.reverse!
@@ -326,6 +356,7 @@ class MusicPlayerMain < Gosu::Window
       @scroll_y = [@scroll_y - SCROLL_SPEED * 5, 0].max
     when Gosu::MsLeft
 
+      check_play_button_click()
       # Check if the sort buttons are clicked
       if area_clicked(1000, 250, 1000+@sort_font.text_width("Names"), 250+@sort_font.height)
         sort_choice = "Names"
