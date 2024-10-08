@@ -7,7 +7,6 @@ BOTTOM_COLOR = Gosu::Color.new(0xFF1D4DB5)
 
 WIDTH = 8000
 HEIGHT = 5000
-SCROLL_SPEED = 30
 
 module ZOrder
   BACKGROUND, PLAYER, UI = *0..2
@@ -85,9 +84,9 @@ class MusicPlayerMain < Gosu::Window
     @desired_width = 850 * @width_scale
     @desired_height = 850 * @height_scale
 
-    # Sort Options UI
     @scroll_y = 200
     @max_scroll = 1000*@albums.size/3
+    @SCROLL_SPEED = 30
     @scrollbar_height = HEIGHT/@albums.size*3
 
     @current_color_index = 0    
@@ -186,8 +185,6 @@ class MusicPlayerMain < Gosu::Window
     @ui.genre.draw(1900, 250, ZOrder::UI, 1.0, 1.0)
     @ui.pipe.draw(2700, 230, ZOrder::UI, 1.0, 1.0)
     @ui.date.draw(2900, 250, ZOrder::UI, 1.0, 1.0)
-
-
   end
 
 
@@ -328,7 +325,7 @@ class MusicPlayerMain < Gosu::Window
     @current_sort_option = choice
   end
 
-  
+
   def play_track(track)
     track.song.play(false)
     @start_time = Gosu.milliseconds
@@ -397,9 +394,9 @@ class MusicPlayerMain < Gosu::Window
   def button_down(id)    
     case id
     when Gosu::MsWheelDown
-      @scroll_y = [@scroll_y + SCROLL_SPEED * 5, @max_scroll].min
+      @scroll_y = [@scroll_y + @SCROLL_SPEED * 5, @max_scroll].min
     when Gosu::MsWheelUp
-      @scroll_y = [@scroll_y - SCROLL_SPEED * 5, 0].max
+      @scroll_y = [@scroll_y - @SCROLL_SPEED * 5, 0].max
     when Gosu::MsLeft
       check_play_button_click
       check_sort_button_click
