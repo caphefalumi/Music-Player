@@ -261,8 +261,8 @@ class MusicPlayerMain < Gosu::Window
       playing_image.draw(2100, HEIGHT-500, ZOrder::PLAYER, 1.0, 1.0, current_color)
     end
 
-    # Update the color every 20 frames
-    if @color_change_delay > 20
+    # Update the color every 8 frames (or is it?)
+    if @color_change_delay > 8
       @current_color_index = (@current_color_index + 1) % colors.length
       @color_change_delay = 0   # Reset the delay counter
     else
