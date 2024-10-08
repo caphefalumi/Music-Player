@@ -198,11 +198,11 @@ class MusicPlayerMain < Gosu::Window
       album.y = y - @scroll_y
 
       if album.y.between?(-@desired_width-200, HEIGHT)
+
         # Using Gosu::Image.from_text instead of Gosu::Font for title rendering
         truncated_title = truncate_text(album.title.strip, @title_size, @desired_width + 200)
         title_image = Gosu::Image.from_text(truncated_title, @title_size)
         title_image.draw(album.x + 50, album.y + @desired_width + 200, ZOrder::PLAYER)
-        
         album.artwork.draw(album.x, album.y, ZOrder::PLAYER, artwork_width_scale, artwork_height_scale)
       end
     end
@@ -279,11 +279,6 @@ class MusicPlayerMain < Gosu::Window
     filled_width = bar_width * progress
     Gosu.draw_rect(bar_x, bar_y, filled_width, bar_height, Gosu::Color::GREEN, ZOrder::UI)
 
-    # # Display the elapsed time and total duration (formatted as mm:ss)
-    # elapsed_time_text = format_time(elapsed_time)
-    # total_duration_text = format_time(@total_duration)
-
-    # @title.draw_text("#{elapsed_time_text} / #{total_duration_text}", bar_x + bar_width + 30, bar_y + 5, ZOrder::UI, 1.0, 1.0, Gosu::Color::WHITE)
   end
   
   def draw_scrollbar
@@ -296,7 +291,7 @@ class MusicPlayerMain < Gosu::Window
     if text.length > max_chars
       text = text[0...max_chars] + "..."
     end
-    text
+    return text
   end
 
   def play_track(track)
@@ -306,7 +301,6 @@ class MusicPlayerMain < Gosu::Window
   end
 	
   def sort(choice)
-    
     if @current_sort_option == choice && choice != ""
       @albums.reverse!
     else
@@ -324,8 +318,7 @@ class MusicPlayerMain < Gosu::Window
     @current_sort_option = choice
   end
 
-  def button_down(id)
-    sort_choice = ""
+  def button_down(id)    
     case id
     when Gosu::MsWheelDown
       @scroll_y = [@scroll_y + SCROLL_SPEED * 5, @max_scroll].min
@@ -341,10 +334,10 @@ class MusicPlayerMain < Gosu::Window
         sort_choice = "Genre"
         puts "Sorting by Genre"
       elsif area_clicked(2900, 250, 2900+@sort_font.text_width("Date"), 250+@sort_font.height)
-        sort_choice = "Year"
+        sort_choice = "Year" 
         puts "Sorting by Year"
       end
-      sort(sort_choice)
+      sort(sort_choice) if sort_choice
 
       # Check if an album was clicked
       @albums.each do |album|
