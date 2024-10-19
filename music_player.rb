@@ -73,9 +73,12 @@ class MusicPlayerMain < Gosu::Window
     @sort_font = Gosu::Font.new(300)
     @track_font = Gosu::Font.new(@track_font_size)
 
-    @current_playing_track = nil
 		@album = nil
     @albums = load_albums()
+
+    @current_track = nil
+    @previous_track = Array.new()
+    @next_track = []
 
     @ui = UI.new()
 
@@ -133,7 +136,7 @@ class MusicPlayerMain < Gosu::Window
     draw_albums
     draw_scrollbar
 		draw_track(@album) if @album
-    draw_duration_bar if @current_playing_track
+    draw_duration_bar if @current_track
   end
   
 
@@ -148,11 +151,10 @@ class MusicPlayerMain < Gosu::Window
 
 
   def draw_ui
-    ui_width = 500  # Change to your desired width
-    ui_height = 500  # Change to your desired height
-    ui_y_position = HEIGHT - ui_height - 50  # Move UI to the bottom
+    ui_width = 500  
+    ui_height = 500 
+    ui_y_position = HEIGHT - ui_height - 50
 
-    # Calculate scale factors based on the desired dimensions
     pause_scale_x = ui_width.to_f / @ui.pause.width
     pause_scale_y = ui_height.to_f / @ui.pause.height
 
@@ -168,8 +170,7 @@ class MusicPlayerMain < Gosu::Window
     # Draw UI background
     Gosu.draw_rect(50, 250, WIDTH-1900, 300, Gosu::Color::GRAY, ZOrder::UI)
 
-    # Draw buttons with scaling
-    if @is_playing  && @current_playing_track
+    if @is_playing  && @current_track
       @ui.pause.draw(250 + ui_width + 20, ui_y_position, ZOrder::UI, pause_scale_x, pause_scale_y)
     else
       @ui.play.draw(250 + ui_width + 20, ui_y_position, ZOrder::UI, play_scale_x, play_scale_y)  # Adjust spacing between buttons
@@ -177,7 +178,6 @@ class MusicPlayerMain < Gosu::Window
     @ui.next.draw(450+(ui_width + 20) * 2, ui_y_position, ZOrder::UI, next_scale_x, next_scale_y)
     @ui.previous.draw(50, ui_y_position, ZOrder::UI, previous_scale_x, previous_scale_y)
     
-    # Draw the sort text images
     @ui.sort_by.draw(50, 300, ZOrder::UI, 1.0, 1.0)
     @ui.pipe.draw(800, 230, ZOrder::UI, 1.0, 1.0)
     @ui.title.draw(1000, 250, ZOrder::UI, 1.0, 1.0)
@@ -247,15 +247,15 @@ class MusicPlayerMain < Gosu::Window
       # Create image from text
       track_image = Gosu::Image.from_text(track_title_trim, @track_font_size)
       if track.song.playing?
-        @current_playing_track = track
+        @current_track = track
         track_image.draw(track.x, track.y, ZOrder::PLAYER, 1.0, 1.0, current_color)
       else
         track_image.draw(track.x, track.y, ZOrder::PLAYER, 1.0, 1.0, Gosu::Color::BLACK)
       end
     end
 
-    if @current_playing_track
-      track_title = truncate_text(@current_playing_track.title, @playing_track_font_size, WIDTH-3000)
+    if @current_track
+      track_title = truncate_text(@current_track.title, @playing_track_font_size, WIDTH-3000)
       playing_text = "Playing: #{track_title}"
       playing_image = Gosu::Image.from_text(playing_text, @playing_track_font_size)
       playing_image.draw(2100, HEIGHT-500, ZOrder::PLAYER, 1.0, 1.0, current_color)
@@ -272,7 +272,7 @@ class MusicPlayerMain < Gosu::Window
 
 
   def draw_duration_bar
-    return unless @current_playing_track && @total_duration > 0
+    return unless @current_track && @total_duration > 0
     
     elapsed_time = Gosu.milliseconds - @start_time
     progress = [elapsed_time / @total_duration.to_f, 1.0].min  # Ensure the value doesn't exceed 1.0
@@ -306,6 +306,7 @@ class MusicPlayerMain < Gosu::Window
     return text
   end
 
+ 
 
   def sort(choice)
     if @current_sort_option == choice && choice != ""
@@ -327,9 +328,11 @@ class MusicPlayerMain < Gosu::Window
 
 
   def play_track(track)
-    track.song.play(false)
-    @start_time = Gosu.milliseconds
-    @total_duration = Mp3Info.open(track.location).length.to_i * 1000
+    if track
+      track.song.play(false)
+      @start_time = Gosu.milliseconds
+      @total_duration = Mp3Info.open(track.location).length.to_i * 1000
+    end
   end
 
 
@@ -344,14 +347,43 @@ class MusicPlayerMain < Gosu::Window
       puts @is_playing ? "Music is playing" : "Music is paused"
 
       # Play or pause the current track accordingly
-      if @is_playing && @current_playing_track
-        @current_playing_track.song.play
-      elsif @current_playing_track
-        @current_playing_track.song.pause
+      if @is_playing && @current_track
+        @current_track.song.play
+      elsif @current_track
+        @current_track.song.pause
       end
     end
   end
 
+  def check_previous_button_click
+    if area_clicked(50, HEIGHT-550, 500+50, HEIGHT-50) && !@previous_track.empty?
+      puts "Clicked previous"
+      
+      # Remove the current track from @previous_track and play it
+      previous = @previous_track.pop
+      @next_track.unshift(@current_track) if @current_track  # Add current track to next_track list
+      play_track(previous)
+      @current_track = previous
+    else
+      puts "No previous track available"
+    end
+  end
+  
+
+  def check_next_button_click
+    if area_clicked(1490, HEIGHT-550, 1490 + 500, HEIGHT-50) && !@next_track.empty?
+      puts "Next track"
+      
+      # Remove the next track from @next_track and play it
+      next_track = @next_track.shift
+      @previous_track << @current_track if @current_track  # Add current track to previous_track list
+      play_track(next_track)
+      @current_track = next_track
+    else
+      puts "No next track available"
+    end
+  end
+  
 
   def check_sort_button_click()
     if area_clicked(1000, 250, 1000+@sort_font.text_width("Names"), 250+@sort_font.height)
@@ -384,7 +416,9 @@ class MusicPlayerMain < Gosu::Window
       @album.tracks.each_with_index do |track, index|
         if area_clicked(track.x, track.y, track.x+@track_font.text_width(track.title), track.y+@track_font.height)
           puts "Track clicked: #{track.title.strip}"
+          @previous_track << track
           play_track(track)
+          @current_track = track
         end
       end
     end
@@ -399,6 +433,7 @@ class MusicPlayerMain < Gosu::Window
       @scroll_y = [@scroll_y - @SCROLL_SPEED * 5, 0].max
     when Gosu::MsLeft
       check_play_button_click
+      check_previous_button_click
       check_sort_button_click
       check_album_click
       check_track_click
