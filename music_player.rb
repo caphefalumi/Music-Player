@@ -273,8 +273,10 @@ class MusicPlayerMain < Gosu::Window
 
   def draw_duration_bar
     return unless @current_track && @total_duration > 0
-    
-    elapsed_time = Gosu.milliseconds - @start_time
+    elapsed_time=0
+    if @is_playing
+      elapsed_time = Gosu.milliseconds - @start_time
+    end
     progress = [elapsed_time / @total_duration.to_f, 1.0].min  # Ensure the value doesn't exceed 1.0
 
     bar_width = WIDTH - 1900  # Width of the bar
